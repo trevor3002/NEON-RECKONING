@@ -1,0 +1,6 @@
+{
+  "name": "Neon Reckoning: Cyberpunk Action",
+  "description": "Retro cyberpunk 2D pixel art action game with fluid combat, climbing, dodging, drone battles, and special attacks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

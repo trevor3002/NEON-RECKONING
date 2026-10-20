@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#080914" rx="96"/>
+  <rect x="32" y="32" width="448" height="448" fill="none" stroke="#1f2942" stroke-width="8" rx="80"/>
+  
+  <!-- Outer Cyber Frame -->
+  <path d="M 80 140 L 140 80 L 372 80 L 432 140 L 432 372 L 372 432 L 140 432 L 80 372 Z" fill="#101528" stroke="#00f3ff" stroke-width="12"/>
+  
+  <!-- Cyber Scarf / Blade Accent -->
+  <path d="M 120 340 L 40 400 L 160 380 Z" fill="#ff007f"/>
+  
+  <!-- Tactical Mask Silhouette -->
+  <path d="M 160 160 L 352 160 L 380 260 L 340 370 L 172 370 L 132 260 Z" fill="#182035" stroke="#2c3a5e" stroke-width="8"/>
+  
+  <!-- Visor Glowing Band -->
+  <polygon points="150,220 362,220 350,270 162,270" fill="#00f3ff" filter="drop-shadow(0 0 20px #00f3ff)"/>
+  <polygon points="200,230 340,230 334,255 210,255" fill="#ffffff"/>
+  
+  <!-- Forehead Core Diamond -->
+  <polygon points="256,175 276,195 256,215 236,195" fill="#ff007f"/>
+  
+  <!-- Lower Mask Ventilation Grates -->
+  <rect x="220" y="300" width="72" height="8" rx="4" fill="#00f3ff" opacity="0.8"/>
+  <rect x="230" y="320" width="52" height="8" rx="4" fill="#00f3ff" opacity="0.6"/>
+  <rect x="240" y="340" width="32" height="8" rx="4" fill="#00f3ff" opacity="0.4"/>
+</svg>
