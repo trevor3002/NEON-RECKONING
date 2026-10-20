@@ -6,6 +6,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
+    // This is a project site, not a domain-root site.
+    base: '/NEON-RECKONING/',
     plugins: [
       react(),
       tailwindcss(),
@@ -13,7 +15,7 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
-          id: '/',
+          id: './',
           name: 'Neon Reckoning: Cyberpunk Action',
           short_name: 'NeonReckon',
           description: 'Retro cyberpunk 2D pixel art action game with fluid combat, climbing, dodging, and special attacks.',
@@ -21,27 +23,12 @@ export default defineConfig(() => {
           background_color: '#05060a',
           display: 'standalone',
           orientation: 'any',
-          start_url: '/',
-          scope: '/',
+          start_url: './',
+          scope: './',
           icons: [
-            {
-              src: '/pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png',
-              purpose: 'any',
-            },
-            {
-              src: '/pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any',
-            },
-            {
-              src: '/icon.svg',
-              sizes: '512x512',
-              type: 'image/svg+xml',
-              purpose: 'any',
-            },
+            { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+            { src: 'icon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any' },
           ],
         },
         workbox: {
