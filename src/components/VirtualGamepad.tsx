@@ -7,10 +7,7 @@ import React, { useCallback, useRef } from 'react';
 import { GameEngine } from '../game/engine';
 import { Player } from '../game/types';
 import {
-  ArrowLeft,
-  ArrowRight,
   ArrowUp,
-  ArrowDown,
   Sword,
   Crosshair,
   Zap,
@@ -27,15 +24,16 @@ interface VirtualGamepadProps {
 
 export const VirtualGamepad: React.FC<VirtualGamepadProps> = ({
   engine,
-  player,
-  mode = 'overlay'
+  player
 }) => {
+  const movementPointer = useRef<number | null>(null);
+
   const triggerHaptic = (ms: number = 10) => {
     if (typeof window !== 'undefined' && 'vibrate' in navigator) {
       try {
         navigator.vibrate(ms);
       } catch {
-        // Ignored if not permitted by browser
+        // Haptics are optional and may be blocked by the browser.
       }
     }
   };
@@ -43,16 +41,20 @@ export const VirtualGamepad: React.FC<VirtualGamepadProps> = ({
   const handleTouchAction = useCallback(
     (actionKey: keyof typeof engine.heldKeys, isDown: boolean, hapticMs: number = 8) => {
       engine.heldKeys[actionKey] = isDown;
-      if (isDown) {
-        triggerHaptic(hapticMs);
-      }
+      if (isDown) triggerHaptic(hapticMs);
     },
-    [engine  // Invisible touch zone: drag anywhere in the left movement area to move.
-  const movementPointer = useRef<number | null>(null);
+    [engine]
+  );
+
+  // Invisible, full-size left-side touch area. Drag from its center in the
+  // direction you want to move; no joystick, arrows, or D-pad are rendered.
   const stopMovement = () => {
     movementPointer.current = null;
-    (['left', 'right', 'up', 'down'] as const).forEach((key) => { engine.heldKeys[key] = false; });
+    (['left', 'right', 'up', 'down'] as const).forEach((key) => {
+      engine.heldKeys[key] = false;
+    });
   };
+
   const renderDPad = () => (
     <div
       aria-label="Touch and drag here to move"
@@ -61,29 +63,30 @@ export const VirtualGamepad: React.FC<VirtualGamepadProps> = ({
         movementPointer.current = e.pointerId;
         e.currentTarget.setPointerCapture(e.pointerId);
         const rect = e.currentTarget.getBoundingClientRect();
-        const dx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
-        const dy = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
-        engine.heldKeys.left = dx < -0.18; engine.heldKeys.right = dx > 0.18;
-        engine.heldKeys.up = dy < -0.18; engine.heldKeys.down = dy > 0.18;
+        const dx = (e.clientX - (rect.left + rect.width / 2)) / Math.max(1, rect.width / 2);
+        const dy = (e.clientY - (rect.top + rect.height / 2)) / Math.max(1, rect.height / 2);
+        engine.heldKeys.left = dx < -0.18;
+        engine.heldKeys.right = dx > 0.18;
+        engine.heldKeys.up = dy < -0.18;
+        engine.heldKeys.down = dy > 0.18;
       }}
       onPointerMove={(e) => {
         if (movementPointer.current !== e.pointerId) return;
         e.preventDefault();
         const rect = e.currentTarget.getBoundingClientRect();
-        const dx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
-        const dy = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
-        engine.heldKeys.left = dx < -0.18; engine.heldKeys.right = dx > 0.18;
-        engine.heldKeys.up = dy < -0.18; engine.heldKeys.down = dy > 0.18;
+        const dx = (e.clientX - (rect.left + rect.width / 2)) / Math.max(1, rect.width / 2);
+        const dy = (e.clientY - (rect.top + rect.height / 2)) / Math.max(1, rect.height / 2);
+        engine.heldKeys.left = dx < -0.18;
+        engine.heldKeys.right = dx > 0.18;
+        engine.heldKeys.up = dy < -0.18;
+        engine.heldKeys.down = dy > 0.18;
       }}
       onPointerUp={stopMovement}
       onPointerCancel={stopMovement}
       onLostPointerCapture={stopMovement}
-      className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-transparent border border-transparent select-none touch-control"
+      className="absolute inset-0 rounded-none bg-transparent border-0 select-none touch-control"
       style={{ touchAction: 'none' }}
     />
-  );
-
->
   );
 
   // Common Action Diamond rendering
@@ -279,27 +282,6 @@ export const VirtualGamepad: React.FC<VirtualGamepadProps> = ({
       </button>
     </div>
   );
-
-  // ----------------------------------------------------
-  // DECK MODE: Used when phone is in PORTRAIT
-  // Completely separate from game viewport, zero obstruction!
-  // ----------------------------------------------------
-  if (mode === 'deck') {
-    return (
-      <div className="w-full h-full flex flex-col justify-between p-3 select-none touch-control pointer-events-auto">
-        {/* Top bar of deck: specials & utilities */}
-        <div className="w-full flex items-center justify-center border-b border-[#18233a] pb-2">
-          {renderSpecials()}
-        </div>
-
-        {/* Bottom row: D-Pad on left, Action Diamond on right */}
-        <div className="w-full flex items-center justify-between px-1 pt-1">
-          {renderDPad()}
-          {renderActionDiamond()}
-        </div>
-      </div>
-    );
-  }
 
   // ----------------------------------------------------
   // OVERLAY MODE: Used when phone is in LANDSCAPE or on PC
