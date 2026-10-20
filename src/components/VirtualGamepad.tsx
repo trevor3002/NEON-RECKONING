@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { GameEngine } from '../game/engine';
 import { Player } from '../game/types';
 import {
@@ -47,109 +47,43 @@ export const VirtualGamepad: React.FC<VirtualGamepadProps> = ({
         triggerHaptic(hapticMs);
       }
     },
-    [engine]
+    [engine  // Invisible touch zone: drag anywhere in the left movement area to move.
+  const movementPointer = useRef<number | null>(null);
+  const stopMovement = () => {
+    movementPointer.current = null;
+    (['left', 'right', 'up', 'down'] as const).forEach((key) => { engine.heldKeys[key] = false; });
+  };
+  const renderDPad = () => (
+    <div
+      aria-label="Touch and drag here to move"
+      onPointerDown={(e) => {
+        e.preventDefault();
+        movementPointer.current = e.pointerId;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        const rect = e.currentTarget.getBoundingClientRect();
+        const dx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
+        const dy = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
+        engine.heldKeys.left = dx < -0.18; engine.heldKeys.right = dx > 0.18;
+        engine.heldKeys.up = dy < -0.18; engine.heldKeys.down = dy > 0.18;
+      }}
+      onPointerMove={(e) => {
+        if (movementPointer.current !== e.pointerId) return;
+        e.preventDefault();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const dx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
+        const dy = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
+        engine.heldKeys.left = dx < -0.18; engine.heldKeys.right = dx > 0.18;
+        engine.heldKeys.up = dy < -0.18; engine.heldKeys.down = dy > 0.18;
+      }}
+      onPointerUp={stopMovement}
+      onPointerCancel={stopMovement}
+      onLostPointerCapture={stopMovement}
+      className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-transparent border border-transparent select-none touch-control"
+      style={{ touchAction: 'none' }}
+    />
   );
 
-  // Common D-Pad rendering
-  const renderDPad = () => (
-    <div className="relative w-34 h-34 sm:w-36 sm:h-36 bg-[#0a0f1d]/75 backdrop-blur-sm border border-[#1e2a47] rounded-full p-1 shadow-lg shadow-black/60 select-none">
-      {/* UP Button (Climb Up) */}
-      <button
-        aria-label="Climb Up"
-        onTouchStart={(e) => {
-          e.preventDefault();
-          handleTouchAction('up', true);
-        }}
-        onTouchEnd={(e) => {
-          e.preventDefault();
-          handleTouchAction('up', false);
-        }}
-        onTouchCancel={(e) => {
-          e.preventDefault();
-          handleTouchAction('up', false);
-        }}
-        onMouseDown={() => handleTouchAction('up', true)}
-        onMouseUp={() => handleTouchAction('up', false)}
-        onMouseLeave={() => handleTouchAction('up', false)}
-        className="absolute top-1 left-1/2 -translate-x-1/2 w-11 h-11 bg-[#131b31] active:bg-cyan-500/40 border border-[#233152] active:border-cyan-400 rounded-t-lg flex items-center justify-center text-slate-300 active:text-cyan-300 transition-colors cursor-pointer"
-      >
-        <ArrowUp className="w-5 h-5" />
-      </button>
-
-      {/* DOWN Button (Climb Down) */}
-      <button
-        aria-label="Climb Down"
-        onTouchStart={(e) => {
-          e.preventDefault();
-          handleTouchAction('down', true);
-        }}
-        onTouchEnd={(e) => {
-          e.preventDefault();
-          handleTouchAction('down', false);
-        }}
-        onTouchCancel={(e) => {
-          e.preventDefault();
-          handleTouchAction('down', false);
-        }}
-        onMouseDown={() => handleTouchAction('down', true)}
-        onMouseUp={() => handleTouchAction('down', false)}
-        onMouseLeave={() => handleTouchAction('down', false)}
-        className="absolute bottom-1 left-1/2 -translate-x-1/2 w-11 h-11 bg-[#131b31] active:bg-cyan-500/40 border border-[#233152] active:border-cyan-400 rounded-b-lg flex items-center justify-center text-slate-300 active:text-cyan-300 transition-colors cursor-pointer"
-      >
-        <ArrowDown className="w-5 h-5" />
-      </button>
-
-      {/* LEFT Button (Run Left) */}
-      <button
-        aria-label="Move Left"
-        onTouchStart={(e) => {
-          e.preventDefault();
-          handleTouchAction('left', true);
-        }}
-        onTouchEnd={(e) => {
-          e.preventDefault();
-          handleTouchAction('left', false);
-        }}
-        onTouchCancel={(e) => {
-          e.preventDefault();
-          handleTouchAction('left', false);
-        }}
-        onMouseDown={() => handleTouchAction('left', true)}
-        onMouseUp={() => handleTouchAction('left', false)}
-        onMouseLeave={() => handleTouchAction('left', false)}
-        className="absolute left-1 top-1/2 -translate-y-1/2 w-11 h-11 bg-[#131b31] active:bg-cyan-500/40 border border-[#233152] active:border-cyan-400 rounded-l-lg flex items-center justify-center text-slate-300 active:text-cyan-300 transition-colors cursor-pointer"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
-
-      {/* RIGHT Button (Run Right) */}
-      <button
-        aria-label="Move Right"
-        onTouchStart={(e) => {
-          e.preventDefault();
-          handleTouchAction('right', true);
-        }}
-        onTouchEnd={(e) => {
-          e.preventDefault();
-          handleTouchAction('right', false);
-        }}
-        onTouchCancel={(e) => {
-          e.preventDefault();
-          handleTouchAction('right', false);
-        }}
-        onMouseDown={() => handleTouchAction('right', true)}
-        onMouseUp={() => handleTouchAction('right', false)}
-        onMouseLeave={() => handleTouchAction('right', false)}
-        className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 bg-[#131b31] active:bg-cyan-500/40 border border-[#233152] active:border-cyan-400 rounded-r-lg flex items-center justify-center text-slate-300 active:text-cyan-300 transition-colors cursor-pointer"
-      >
-        <ArrowRight className="w-5 h-5" />
-      </button>
-
-      {/* Center Hub */}
-      <div className="absolute inset-0 m-auto w-8 h-8 rounded-full bg-[#0a0e1c] border border-[#1b2640] flex items-center justify-center pointer-events-none">
-        <div className="w-2.5 h-2.5 rounded-full bg-cyan-400/40 animate-pulse" />
-      </div>
-    </div>
+>
   );
 
   // Common Action Diamond rendering
@@ -373,7 +307,7 @@ export const VirtualGamepad: React.FC<VirtualGamepadProps> = ({
   return (
     <div className="absolute inset-0 pointer-events-none z-30 select-none touch-control overflow-hidden">
       {/* Bottom Left Thumb Zone: D-Pad */}
-      <div className="absolute bottom-3 left-3 pl-safe pb-safe pointer-events-auto flex items-center justify-center">
+      <div className="absolute bottom-0 left-0 h-[72%] w-[46%] pl-safe pb-safe pointer-events-auto flex items-end justify-start">
         {renderDPad()}
       </div>
 
