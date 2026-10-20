@@ -23,8 +23,6 @@ export default function App() {
 
   const [gameState, setGameState] = useState<GameScreen>('TITLE');
   const [crtEnabled, setCrtEnabled] = useState<boolean>(true);
-  const [isMobilePortrait, setIsMobilePortrait] = useState<boolean>(false);
-  const [isTouchDevice, setIsTouchDevice] = useState<boolean>(false);
 
   // HUD mirror state updated at throttle
   const [hudStats, setHudStats] = useState<GameStats>({
@@ -69,18 +67,6 @@ export default function App() {
 
     engine.startLoop();
 
-    // Responsive screen & orientation detection
-    const checkOrientation = () => {
-      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth <= 1024;
-      const isPortrait = window.innerHeight > window.innerWidth && window.innerWidth <= 900;
-      setIsTouchDevice(hasTouch);
-      setIsMobilePortrait(isPortrait);
-    };
-
-    checkOrientation();
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
-
     // Audio unlocking on first touch/click (crucial for iOS Safari & Android Chrome)
     const unlockAudio = () => {
       audio.playClimbStep();
@@ -98,8 +84,6 @@ export default function App() {
     window.addEventListener('keydown', handleGlobalKey);
 
     return () => {
-      window.removeEventListener('resize', checkOrientation);
-      window.removeEventListener('orientationchange', checkOrientation);
       window.removeEventListener('keydown', handleGlobalKey);
       window.removeEventListener('touchstart', unlockAudio);
       window.removeEventListener('click', unlockAudio);
@@ -114,9 +98,17 @@ export default function App() {
   };
 
   const handleStartGame = (sectorIndex: number) => {
-    if (engineRef.current) {
-      engineRef.current.startRun(sectorIndex);
+    // Enter fullscreen on the user's first explicit play gesture where supported.
+    const root = document.documentElement;
+    if (!document.fullscreenElement && root.requestFullscreen) {
+      root.requestFullscreen().then(() => {
+        const orientation = (screen as Screen & { orientation?: ScreenOrientation }).orientation;
+        if (orientation && 'lock' in orientation) {
+          (orientation as ScreenOrientation & { lock?: (value: string) => Promise<void> }).lock?.('landscape').catch(() => {});
+        }
+      }).catch(() => {});
     }
+    if (engineRef.current) engineRef.current.startRun(sectorIndex);
   };
 
   const handleResume = () => {
@@ -158,145 +150,18 @@ export default function App() {
   };
 
   // ---------------------------------------------------------------
-  // RENDER: PHONE PORTRAIT MODE (Cyber Arcade Deck Layout)
-  // Top half: 16:9 gameplay screen
-  // Bottom half: Dedicated cyber gamepad deck with zero occlusion!
-  // ---------------------------------------------------------------
-  if (isMobilePortrait) {
-    return (
-      <div className="relative w-screen h-screen bg-[#04060c] overflow-hidden flex flex-col justify-between font-mono-tech select-none touch-control">
-        {/* Top Half: 16:9 Game Screen Viewport */}
-        <div className="relative w-full aspect-[16/9] bg-black overflow-hidden shrink-0 border-b border-cyan-500/40 shadow-xl shadow-cyan-950/40">
-          <canvas
-            ref={canvasRef}
-            className="w-full h-full object-contain pixel-art bg-[#080912]"
-          />
-
-          {/* CRT scanlines overlay */}
-          {crtEnabled && (
-            <div className="absolute inset-0 pointer-events-none z-10 crt-overlay crt-vignette" />
-          )}
-
-          {/* Compact HUD over game viewport in portrait */}
-          {gameState === 'PLAYING' && hudPlayer && hudLevel && (
-            <GameHUD
-              player={hudPlayer}
-              stats={hudStats}
-              level={hudLevel}
-              enemies={engineRef.current?.enemies || []}
-              crtEnabled={crtEnabled}
-              onToggleCrt={handleToggleCrt}
-              onPause={() => {
-                if (engineRef.current) engineRef.current.setGameState('PAUSED');
-              }}
-              isMobilePortrait={true}
-            />
-          )}
-
-          {/* Overlays / Modals in Top Viewport if active */}
-          {gameState === 'TITLE' && (
-            <TitleScreen
-              onStartGame={handleStartGame}
-              crtEnabled={crtEnabled}
-              onToggleCrt={handleToggleCrt}
-            />
-          )}
-
-          {gameState === 'PAUSED' && (
-            <PauseModal
-              onResume={handleResume}
-              onRestart={handleRestartSector}
-              onQuit={handleQuitToTitle}
-              crtEnabled={crtEnabled}
-              onToggleCrt={handleToggleCrt}
-            />
-          )}
-
-          {gameState === 'SECTOR_CLEAR' && hudLevel && (
-            <SectorClearModal
-              stats={hudStats}
-              currentLevel={hudLevel}
-              onNextSector={handleNextSector}
-            />
-          )}
-
-          {gameState === 'GAME_OVER' && (
-            <GameOverModal
-              stats={hudStats}
-              onRetry={handleRestartSector}
-              onQuit={handleQuitToTitle}
-            />
-          )}
-
-          {gameState === 'VICTORY' && (
-            <VictoryModal
-              stats={hudStats}
-              onPlayAgain={() => handleStartGame(0)}
-            />
-          )}
-        </div>
-
-        {/* Middle Deck Info & Utility Strip */}
-        <div className="w-full bg-[#080c1a] border-b border-[#1b253e] px-3 py-1.5 flex items-center justify-between text-xs text-slate-300 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-cyan-400 font-bold text-[11px]">CYBER DECK</span>
-            <span className="text-slate-600">·</span>
-            <span className="text-slate-400 text-[10px]">
-              {gameState === 'PLAYING' && hudLevel ? hudLevel.name.split(':')[0] : 'STANDBY'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleToggleFullscreen}
-              className="flex items-center gap-1 px-2 py-0.5 bg-[#10172e] border border-[#213155] rounded text-[10px] text-cyan-300 active:bg-cyan-900 cursor-pointer"
-            >
-              <RotateCw className="w-3 h-3 text-cyan-400" />
-              <span>ROTATE FOR LANDSCAPE</span>
-            </button>
-            <button
-              onClick={() => {
-                audio.toggleMute();
-              }}
-              className="p-1 bg-[#10172e] border border-[#213155] rounded text-slate-300 active:text-cyan-400 cursor-pointer"
-            >
-              {audio.getIsMuted() ? <VolumeX className="w-3 h-3 text-pink-500" /> : <Volume2 className="w-3 h-3 text-cyan-400" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Bottom Half: Dedicated Cyber Gamepad Deck */}
-        <div className="w-full flex-1 bg-gradient-to-b from-[#070b18] to-[#04060c] flex items-center justify-center relative overflow-hidden pb-safe">
-          {hudPlayer && engineRef.current ? (
-            <VirtualGamepad
-              engine={engineRef.current}
-              player={hudPlayer}
-              mode="deck"
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-2 text-center text-slate-500 text-xs px-4">
-              <span className="text-cyan-400 font-semibold">TAP "START INFILTRATION" TO ENGAGE CONTROLS</span>
-              <span className="text-[10px] text-slate-600">Gamepad deck activates during active mission</span>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ---------------------------------------------------------------
   // RENDER: LANDSCAPE MODE & DESKTOP (Full Viewport Experience)
   // ---------------------------------------------------------------
   return (
-    <div className="relative w-screen h-screen bg-[#05060a] overflow-hidden flex items-center justify-center select-none touch-control">
+    <div className="fixed inset-0 w-[100dvw] h-[100dvh] bg-[#05060a] overflow-hidden flex items-center justify-center select-none touch-control">
       {/* 
         Isolated Canvas Viewport:
         Using 16:9 aspect ratio and pixel-art CSS scaling 
       */}
-      <div className="relative w-full h-full max-w-[1920px] max-h-[1080px] aspect-[16/9] flex items-center justify-center bg-black overflow-hidden shadow-2xl">
+      <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-[#080912] overflow-hidden">
         <canvas
           ref={canvasRef}
-          className="w-full h-full object-contain pixel-art bg-[#080912]"
+          className="absolute inset-0 w-full h-full object-fill pixel-art bg-[#080912]"
         />
 
         {/* Optional Authentic CRT Scanline & Vignette Overlay */}
